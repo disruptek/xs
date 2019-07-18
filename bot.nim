@@ -1,5 +1,6 @@
 #? replace(sub = "\t", by = " ")
 import os
+import re
 import irc
 import cligen
 import asyncdispatch
@@ -40,7 +41,8 @@ type
 		SpeechIcon = "/usr/share/icons/noto-emoji/128x128/emotes/emoji_u1f4ac.png", # 💬
 		LoudIcon = "/usr/share/icons/noto-emoji/128x128/emotes/emoji_u1f4e2.png", # 📢
 		TalkIcon = "/usr/share/icons/noto-emoji/128x128/emotes/emoji_u1f5e3.png", # 🗣️
-	NotifyProc = proc (mtype: IrcMType; nick: string; text: string; channel: string; icon: NotifyIcon = OtherIcon): Replaces
+	NotifyProc = proc (mtype: IrcMType; nick: string; text: string; channel: string;
+		icon: NotifyIcon = OtherIcon; force: Replaces = 0): Replaces
 
 #[
 
@@ -96,11 +98,23 @@ proc sendNotify[T](app_name: string; replaces_id: Replaces=0; app_icon=""; summa
 		break
 	]#
 
+proc stripSource(nick: var string; text: var string) =
+	## transform the nick if it came from gitter/discord
+	var
+		singly = nick & text
+		pattern = re"^From(Gitter|Discord)[^<]*<([^>]+)>[^ ]* (.*)$"
+		matches: array[3, string]
+
+	if not singly.match(pattern, matches):
+		return
+	nick = matches[^2]
+	text = matches[^1]
+
 proc processEvent(irc: AsyncIrc; event: IrcEvent; notice: NotifyProc) {.async.} =
 	## the client runs this callback whenever an event comes in;
 	## eg. a chat event, a server event, a channel event, etc.
 	var
-		chan, text: string
+		chan, nick, text: string
 	case event.typ:
 		of EvDisconnected:
 			warn "disconnected; reconnecting..."
@@ -109,7 +123,11 @@ proc processEvent(irc: AsyncIrc; event: IrcEvent; notice: NotifyProc) {.async.} 
 			case event.cmd:
 				of MPrivMsg:
 					(chan, text) = (event.params[0], event.params[1])
-					discard event.cmd.notice(event.nick, text, chan, icon=ChatIcon)
+					nick = event.nick
+					stripSource(nick, text)
+					if "ACTION" in text:
+						debug event
+					discard event.cmd.notice(nick, text, chan, icon=SpeechIcon)
 					info event.nick, "@", chan, ": ", text
 				of MQuit:
 					discard event.cmd.notice(event.nick, "«quit»", "", icon=QuitIcon)
@@ -166,21 +184,46 @@ proc bot(nick=DEFAULT_NICK;
 		who: string
 		cmd: IrcMType
 
-	proc notice(mtype: IrcMType; nick: string; text: string; channel: string; icon=OtherIcon): Replaces =
+	proc notice(mtype: IrcMType; nick: string; text: string; channel: string;
+		icon=OtherIcon; force: Replaces = 0): Replaces =
 		let hints = {"urgency": newVariant(1'u8)}.toTable
-		if nick == who and nick != "" and cmd == mtype:
-			#body = was & "⏎\n" & text
-			body &= "\n" & text
-		else:
-			body = text
-			replace = 0
-			cmd = mtype
+		let newlen = nick.len + body.len + text.len
+		proc saveLast(id: Replaces; newbod: string) =
+			## memo'ize the last caller
+			replace = id
 			who = nick
+			cmd = mtype
+			body = newbod
+		if force != 0:
+			saveLast(force, text)
+		elif nick == who and nick != "" and cmd == mtype and newlen < 230:
+			debug "old body len ", body.len + nick.len
+			saveLast(replace, body & "↵\n" & text)
+			debug "new body len ", body.len + nick.len
+		else:
+			saveLast(0, text)
 
-		replace = sendNotify(notify, replaces_id=replace, app_icon= $icon,
+		# expire chats more slowly than other messages
+		let expiry: int32 = case mtype:
+			of MPrivMsg: 300_000
+			else: 100_000
+
+		result = sendNotify(notify, replaces_id=replace, app_icon= $icon,
 			summary=nick, body=body, actions= @[], hints=hints,
-			expire_timeout=300_000)
-		result = replace
+			expire_timeout=expiry)
+		# if we got a new id despite attempting to replace,
+		# then we may want to re-issue with just the original text.
+		if replace != 0:
+			# if we made a new notice and it included prior text,
+			# then just alter that notice to only include the new text.
+			if result != replace and body != text:
+				debug "force notice last send ", result, " and replace ", replace, " force set to ", result
+				return notice(mtype, nick, text, channel, icon=icon, force=result)
+			return
+		# it wasn't a replacement,
+		# so just set the replacement for the future.
+		debug "notice last send ", result, " and replace ", replace, " result set to ", result
+		replace = result
 
 	proc eventHandler(irc: AsyncIrc; event: IrcEvent) {.async.} =
 		waitfor processEvent(irc, event, notice)
