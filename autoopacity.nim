@@ -8,7 +8,6 @@
 import os
 import json
 import strutils
-import net
 import cligen
 import strformat
 import logging
