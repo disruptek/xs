@@ -229,7 +229,7 @@ proc bot(nick=DEFAULT_NICK;
 		callback=eventHandler)
 	waitfor irc.run()
 
-if isMainModule:
+when isMainModule:
 	let logger = newConsoleLogger(useStderr=true)
 	addHandler(logger)
 

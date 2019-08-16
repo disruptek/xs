@@ -151,7 +151,7 @@ proc autoOpacity(active=1.0; inactive=0.5, fgcolor="", bgcolor="") =
 		else:
 			was = 0
 
-if isMainModule:
+when isMainModule:
 	when defined(release):
 		let level = lvlWarn
 	else:
