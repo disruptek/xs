@@ -13,6 +13,7 @@ import strformat
 import logging
 
 import i3ipc
+import jsonconvert
 
 type
 	Pid = int
@@ -120,14 +121,25 @@ proc hasFloatingWindows(js: JsonNode): bool =
 	for j in js.floatingWindows:
 		return true
 
+iterator walkWindows(js: JsonNode): JsonNode =
+	if js != nil:
+		if js.hasFloatingWindows:
+			for floater in js.floatingWindows:
+				yield floater
+		else:
+			yield js
+
 proc isKitty(js: JsonNode): bool =
 	result = false
-	if js.hasFloatingWindows:
-		for floater in js.floatingWindows:
-			if floater.isKitty:
-				return true
-	else:
-		result = js["app_id"].getStr == "kitty"
+	for window in js.walkWindows:
+		if window.get("app_id", "") == "kitty":
+			return true
+
+proc isIrc(js: JsonNode): bool =
+	result = false
+	for window in js.walkWindows:
+		if window.get("name", "") == "irc":
+			return true
 
 proc autoOpacity(active=1.0; inactive=0.5, fgcolor="", bgcolor="") =
 	## set opacity on active|inactive windows
@@ -146,7 +158,9 @@ proc autoOpacity(active=1.0; inactive=0.5, fgcolor="", bgcolor="") =
 			continue
 		compositor.setOpacity(now, active)
 		compositor.setOpacity(was, inactive)
-		if js["container"].isKitty:
+		if js["container"].isIrc:
+			was = 0
+		elif js["container"].isKitty:
 			was = now
 		else:
 			was = 0
