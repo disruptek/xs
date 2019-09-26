@@ -1,4 +1,3 @@
-#? replace(sub = "\t", by = " ")
 ##
 ##
 ## a thing that monitors when windows are focussed and
@@ -6,14 +5,12 @@
 ##
 ##
 import os
-import json
 import strutils
 import cligen
 import strformat
 import logging
 
 import i3ipc
-import jsonconvert
 
 type
   Pid = int
@@ -61,21 +58,6 @@ proc setOpacity(comp: Compositor; app: int; to=1.0) =
   discard waitFor RunCommand.send(comp, &"[con_id={app}] opacity {to:1.2f}")
   #discard waitFor RunCommand.send(comp, &"opacity {to:1.2f}")
 
-proc findActiveWindowId(js: JsonNode): int {.deprecated.} =
-  ## given an event, try to get active window id
-  while true:
-    if "change" notin js:
-      break
-    if js["change"].getStr != "focus":
-      break
-    if "container" notin js:
-      break
-    let c = js["container"]
-    if "id" notin c:
-      break
-    return c["id"].getInt
-  return 0
-
 iterator windowChanges(compositor: Compositor): WindowEvent =
   ## yield window events
   discard waitFor Subscribe.send(compositor, "[\"window\"]")
@@ -88,27 +70,7 @@ iterator windowChanges(compositor: Compositor): WindowEvent =
       continue
     yield receipt.event.window
 
-iterator floatingWindows(js: JsonNode): JsonNode {.deprecated.} =
-  if "floating_nodes" in js:
-    var floaters = js["floating_nodes"]
-    assert floaters.kind == JArray
-    for j in floaters.elems:
-      yield j
-
-proc hasFloatingWindows(js: JsonNode): bool {.deprecated.} =
-  result = false
-  for j in js.floatingWindows:
-    return true
-
-iterator walkWindows(js: JsonNode): JsonNode {.deprecated.} =
-  if js != nil:
-    if js.hasFloatingWindows:
-      for floater in js.floatingWindows:
-        yield floater
-    else:
-      yield js
-
-iterator walkWindows(container: TreeResult): TreeResult =
+iterator walkWindows(container: TreeReply): TreeReply =
   if container != nil:
     if container.floatingNodes.len > 0:
       for floater in container.floatingNodes:
@@ -116,24 +78,13 @@ iterator walkWindows(container: TreeResult): TreeResult =
     else:
       yield container
 
-proc isTerminal(js: JsonNode): bool {.deprecated.} =
-  const terminals = ["kitty", "Alacritty"]
-  for window in js.walkWindows:
-    if window.get("app_id", "") in terminals:
-      return true
-
-proc isTerminal(container: TreeResult): bool =
+proc isTerminal(container: TreeReply): bool =
   const terminals = ["kitty", "Alacritty"]
   for window in container.walkWindows:
     if window.appId in terminals:
       return true
 
-proc isIrc(js: JsonNode): bool {.deprecated.} =
-  for window in js.walkWindows:
-    if window.get("name", "") == "irc":
-      return true
-
-proc isIrc(container: TreeResult): bool =
+proc isIrc(container: TreeReply): bool =
   for window in container.walkWindows:
     if window.name == "irc":
       return true
