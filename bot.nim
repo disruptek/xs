@@ -6,11 +6,13 @@ import asyncfutures
 import times
 import tables
 import strformat
+import options
 import logging
 import irc
 
 import dbus
 import cligen
+import i3ipc
 
 const DEFAULT_NICK = "disruptek"
 const DEFAULT_NAME = "Andy Davidoff"
@@ -27,6 +29,8 @@ type
     body: string
     replace: Replaces
     toolong: int
+    compositor: Option[Compositor]
+
   NotifyIcon = enum NoIcon = "",
     ChatIcon = "/usr/share/icons/noto-emoji/128x128/emotes/emoji_u1f5e8.png", # 🗨️
     EjectIcon = "/usr/share/icons/noto-emoji/128x128/emotes/emoji_u23cf.png", # ⏏️
@@ -110,8 +114,40 @@ proc stripSource(nick: var string; text: var string) =
   nick = matches[^2]
   text = matches[^1]
 
+iterator clientWalk*(container: TreeReply): TreeReply =
+  if container != nil:
+    if container.floatingNodes.len > 0:
+      for node in container.floatingNodes:
+        yield node
+    elif container.nodes.len > 0:
+      for node in container.nodes:
+        yield node
+    else:
+      yield container
+
+proc focussedWindow(tree: TreeReply): Option[TreeReply] =
+  if tree.focused:
+    return some(tree)
+  for window in tree.clientWalk:
+    if window == tree:
+      return
+    result = window.focussedWindow
+    if result.isSome:
+      return
+
 proc notify(memo: var Memo; summary: string; body: string; icon=OtherIcon; expiry: int32 = -1) =
   let hints = {"urgency": newVariant(1'u8)}.toTable
+
+  # don't notify if the irc window is focussed
+  if memo.compositor.isNone:
+    memo.compositor = some(waitfor newCompositor())
+
+  let
+    reply = waitfor memo.compositor.get.invoke(GetTree)
+    focus = reply.tree.focussedWindow
+  if focus.isSome:
+    if focus.get.name == "irc":
+      return
 
   # never re-use the last notification if the summary doesn't match
   if summary != memo.summary:
