@@ -58,6 +58,17 @@ proc setOpacity(comp: Compositor; app: int; to=1.0) =
   discard waitFor RunCommand.send(comp, &"[con_id={app}] opacity {to:1.2f}")
   #discard waitFor RunCommand.send(comp, &"opacity {to:1.2f}")
 
+iterator clientWalk*(container: TreeReply): TreeReply =
+  if container != nil:
+    if container.floatingNodes.len > 0:
+      for node in container.floatingNodes:
+        yield node
+    elif container.nodes.len > 0:
+      for node in container.nodes:
+        yield node
+    else:
+      yield container
+
 iterator windowChanges(compositor: Compositor): WindowEvent =
   ## yield window events
   discard waitFor Subscribe.send(compositor, "[\"window\"]")
@@ -70,22 +81,14 @@ iterator windowChanges(compositor: Compositor): WindowEvent =
       continue
     yield receipt.event.window
 
-iterator walkWindows(container: TreeReply): TreeReply =
-  if container != nil:
-    if container.floatingNodes.len > 0:
-      for floater in container.floatingNodes:
-        yield floater
-    else:
-      yield container
-
 proc isTerminal(container: TreeReply): bool =
   const terminals = ["kitty", "Alacritty"]
-  for window in container.walkWindows:
+  for window in container.clientWalk:
     if window.appId in terminals:
       return true
 
 proc isIrc(container: TreeReply): bool =
-  for window in container.walkWindows:
+  for window in container.clientWalk:
     if window.name == "irc":
       return true
 
