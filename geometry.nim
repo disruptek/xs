@@ -12,7 +12,7 @@ import i3ipc
 type
   Geometry* = tuple[w: int; h: int; x: Option[int]; y: Option[int]]
 
-proc parseGeometry(geometry: string): Option[Geometry] =
+proc parseGeometry*(geometry: string): Option[Geometry] =
   ## parse a geometry string like 640x480+20-30
   let geo = geometry.match(re"(\d+)x(\d+)(?:([\+\-])?(\d+)?)(?:([\+\-])?(\d+)?)")
   if not geo.isSome:
