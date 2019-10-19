@@ -58,17 +58,6 @@ proc setOpacity(comp: Compositor; app: int; to=1.0) =
   discard waitFor RunCommand.send(comp, &"[con_id={app}] opacity {to:1.2f}")
   #discard waitFor RunCommand.send(comp, &"opacity {to:1.2f}")
 
-iterator clientWalk*(container: TreeReply): TreeReply =
-  if container != nil:
-    if container.floatingNodes.len > 0:
-      for node in container.floatingNodes:
-        yield node
-    elif container.nodes.len > 0:
-      for node in container.nodes:
-        yield node
-    else:
-      yield container
-
 iterator windowChanges(compositor: Compositor): WindowEvent =
   ## yield window events
   discard waitFor Subscribe.send(compositor, "[\"window\"]")
