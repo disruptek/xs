@@ -142,10 +142,11 @@ proc notify(memo: var Memo; summary: string; body: string; icon=OtherIcon; expir
     memo.compositor = some(waitfor newCompositor())
 
   let
-    reply = waitfor memo.compositor.get.invoke(GetTree)
+    reply = memo.compositor.get.invoke(GetTree)
     focus = reply.tree.focussedWindow
   if focus.isSome:
     if focus.get.name == "irc":
+      echo "your chat window is focussed, doofus"
       return
 
   # never re-use the last notification if the summary doesn't match
