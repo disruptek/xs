@@ -11,14 +11,15 @@ import irc
 
 import dbus
 import cligen
-import i3ipc
+import swayipc
 
-const DEFAULT_NICK = "disruptek"
-const DEFAULT_NAME = "Andy Davidoff"
-const DEFAULT_HOST = "irc.chat.twitch.tv"
-const DEFAULT_PORT = 6667
-#const DEFAULT_CHAN = @["#" & DEFAULT_NICK]
-const DEFAULT_CHAN = @[]
+const
+  DEFAULT_NICK = "disruptek"
+  DEFAULT_NAME = "Andy Davidoff"
+  DEFAULT_HOST = "irc.chat.twitch.tv"
+  DEFAULT_PORT = 6667
+  #DEFAULT_CHAN = @["#" & DEFAULT_NICK]
+  DEFAULT_CHAN = @[]
 
 type
   Replaces = uint32

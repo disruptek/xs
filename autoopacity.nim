@@ -10,7 +10,7 @@ import cligen
 import strformat
 import logging
 
-import i3ipc
+import swayipc
 
 type
   Pid = int

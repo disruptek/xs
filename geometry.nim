@@ -7,7 +7,7 @@ import strutils
 import logging
 
 import cligen
-import i3ipc
+import swayipc
 
 type
   Geometry* = tuple[w: int; h: int; x: Option[int]; y: Option[int]]
