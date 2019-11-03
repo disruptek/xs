@@ -12,6 +12,8 @@ import irc
 import dbus
 import cligen
 import swayipc
+import cutelog
+import ix
 
 const
   DEFAULT_NICK = "disruptek"
@@ -20,6 +22,19 @@ const
   DEFAULT_PORT = 6667
   #DEFAULT_CHAN = @["#" & DEFAULT_NICK]
   DEFAULT_CHAN = @[]
+
+  freenodePW {.strdefine.}: string = ""
+  twitchPW {.strdefine.}: string = ""
+
+  logLevel =
+    when defined(debug):
+      lvlDebug
+    elif defined(release):
+      lvlNotice
+    elif defined(danger):
+      lvlNotice
+    else:
+      lvlInfo
 
 type
   Replaces = uint32
@@ -87,7 +102,10 @@ proc sendNotify(app_name: string; replaces_id: Replaces=0; app_icon="";
 
   msg.append(app_name)
   msg.append(replaces_id)
-  msg.append(app_icon)
+  when defined(notifyIcons):
+    msg.append(app_icon)
+  else:
+    msg.append("")
   msg.append(summary)
   msg.append(body)
   msg.append(actions)
@@ -113,17 +131,6 @@ proc stripSource(nick: var string; text: var string) =
     return
   nick = matches[^2]
   text = matches[^1]
-
-iterator clientWalk*(container: TreeReply): TreeReply =
-  if container != nil:
-    if container.floatingNodes.len > 0:
-      for node in container.floatingNodes:
-        yield node
-    elif container.nodes.len > 0:
-      for node in container.nodes:
-        yield node
-    else:
-      yield container
 
 proc focussedWindow(tree: TreeReply): Option[TreeReply] =
   if tree.focused:
@@ -188,28 +195,32 @@ proc notify(memo: var Memo; summary: string; body: string; icon=OtherIcon; expir
   memo.replace = lastid
 
 
-proc bot(nick=DEFAULT_NICK;
-  host=DEFAULT_HOST;
-  port=DEFAULT_PORT;
-  name=DEFAULT_NAME;
-  pass="";
-  notify="twitch";
-  toolong=230;
-  channels: seq[string]=DEFAULT_CHAN) =
+proc bot(nick = DEFAULT_NICK; host = DEFAULT_HOST; port = DEFAULT_PORT;
+  name = DEFAULT_NAME; pass = ""; notify = "twitch"; toolong = 230;
+  log_level = logLevel; channels: seq[string] = DEFAULT_CHAN) =
   ## this exists to define the cli arg parser;
   ## it also runs our main irc loop
 
+  # user's choice, our default
+  setLogFilter(log_level)
+
   let
-    pass = os.getEnv("BOT_OAUTH", "")
     pno = Port(port)
 
   var
     irc: AsyncIrc
+    pass = os.getEnv("BOT_OAUTH", "")
     memo = Memo(app: notify, toolong: toolong)
 
-  if pass == "" and host == DEFAULT_HOST:
-    error "need a password or BOT_OAUTH variable in your env"
-    quit(1)
+  if pass == "":
+    case host:
+    of "irc.freenode.net":
+      pass = freenodePW
+    of "irc.chat.twitch.tv":
+      pass = twitchPW
+    else:
+      error "need a password or BOT_OAUTH variable in your env"
+      quit(1)
 
   proc eventHandler(irc: AsyncIrc; event: IrcEvent) {.async.} =
     ## the client runs this callback whenever an event comes in;
@@ -262,12 +273,14 @@ proc bot(nick=DEFAULT_NICK;
         debug event
 
   irc = newAsyncIrc(address=host, port=pno, nick=nick, user=nick,
-    realname=name, serverPass=pass, joinChans=channels,
-    callback=eventHandler)
+    realname=name, serverPass=pass, joinChans=channels, callback=eventHandler)
   waitfor irc.run()
 
 when isMainModule:
-  let logger = newConsoleLogger(useStderr=true)
+  let
+    console = newConsoleLogger(levelThreshold = logLevel,
+                               useStderr = true, fmtStr = "")
+    logger = newCuteLogger(console)
   addHandler(logger)
 
   dispatch bot
