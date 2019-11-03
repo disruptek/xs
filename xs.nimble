@@ -10,4 +10,4 @@ requires "irc >= 0.2.1"
 requires "https://github.com/disruptek/cutelog.git >= 1.0.0"
 requires "bump >= 1.8.5"
 
-bin = @["src/xs/bot", "src/xs/autoopacity", "src/xs/geometry", "src/xs/ix"]
+bin = @["xs/bot", "xs/autoopacity", "xs/geometry", "xs/ix"]
