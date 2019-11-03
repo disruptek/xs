@@ -3,6 +3,32 @@
 Some random tools for my desktop environment that don't justify their own
 packaging.  Build and run with `--help` to get usage hints.
 
+## ix
+
+A tiny tool/library to paste to http://ix.io/ -- yes, as was pointed out to me,
+it's one line of `curl`. I'm going to integrate this into the bot below so it
+can provide Nim Playground links automatically.
+
+```
+Usage:
+  ix [optional-params] files to paste to ix
+get, put, post, delete pastes at ix.org
+Options(opt-arg sep :|=|spc):
+  -h, --help                            print this cligen-erated help
+  --help-syntax                         advanced: prepend,plurals,..
+  --version          bool    false      print version
+  -n=, --name=       string  "stdin"    default name of the input stream
+  -x, --xclip        bool    true       stuff output urls into clipboard
+  -e=, --extension=  string  "nim"      filename extension for content
+  -r=, --reads=      int     0          remove after N reads; 0 to disable
+  -g=, --get=        string  ""         retrieve a paste by id
+  -p=, --put=        string  ""         update an existing paste identifier
+  -d=, --delete=     string  ""         remove the given paste immediately
+  -u=, --username=   string  ""         username for authentication
+  --password=        string  ""         password for authentication
+  -l=, --log-level=  Level   lvlNotice  specify Nim logging level
+```
+
 ## Geometry
 
 This is a little tool that I primarily use to reposition floating browser

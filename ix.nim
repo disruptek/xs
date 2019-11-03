@@ -33,6 +33,7 @@ template crash(why: string) =
 proc addIx*(data: var MultipartData;
            n: int; f = ""; id = ""; name = ""; filename = "";
            ext = ""; read = 0; remove = false) =
+  ## add data for a paste to the payload we'll send via http
   if filename != "":
     data.addFiles {
       &"f:{n}": filename,
@@ -79,6 +80,7 @@ proc paste*(name = "stdin"; xclip = true; extension = "nim"; reads = 0;
     client = newHttpClient()
     user, pass: string
 
+  # try to guess the username if it wasn't provided
   if username != "":
     user = username
   else:
@@ -86,14 +88,17 @@ proc paste*(name = "stdin"; xclip = true; extension = "nim"; reads = 0;
     if user == "":
       user = os.getEnv "USER"
 
+  # try to guess the password if it wasn't provided
   if password != "":
     pass = password
   else:
     pass = os.getEnv "IX_PASS"
 
+  # why would anyone want to submit more than one such command?
   if @[put, delete, get].count("") < 2:
     crash &"ambiguous.  use just one of put, delete, or get"
 
+  # identify the id of the paste to work on an set the http method
   var
     id: string
     meth: HttpMethod
@@ -109,19 +114,25 @@ proc paste*(name = "stdin"; xclip = true; extension = "nim"; reads = 0;
   else:
     meth = HttpPost
 
+  # some methods require authentication
   if meth in {HttpPut, HttpDelete}:
     if pass == "" or user == "":
       crash &"provide a password and username; $USER `{user}` by default"
 
-  # build the multipart data for a submission
+  # we're going to record the apparent file extensions so we can use them
+  # to build urls which will load the pastes with syntax highlighting
   var
     exts: seq[string]
+
+  # build the multipart data for a submission
   if meth in {HttpPost, HttpPut}:
+    # if no filenames were provided, we'll use stdin
     if filenames.len == 0:
       data.addIx(n, f = stdin.readAll, name = name.addFileExt(extension),
                  ext = extension, read = reads)
       exts.add extension.replace(".")
       n.inc
+    # otherwise, add each file to the payload
     for fn in filenames.items:
       let
         splat = fn.splitFile
@@ -129,11 +140,14 @@ proc paste*(name = "stdin"; xclip = true; extension = "nim"; reads = 0;
       data.addIx(n, filename = fn, id = id, read = reads)
       n.inc
 
+  # make a query of ix using all the info we've collected thus far
   var
     response: string
     url = "http://ix.io/" & id
+  # set authentication credentials if available
   if user != "" and pass != "":
     client.headers["Authorization"] = @["Basic " & encode(&"{user}:{pass}")]
+  # issue the request and store the response, a string, upon receipt
   case meth:
   of HttpGet:
     response = client.getContent(url)
@@ -147,10 +161,10 @@ proc paste*(name = "stdin"; xclip = true; extension = "nim"; reads = 0;
     crash &"{meth} not supported; use Get, Put, Post, or Delete"
 
   # output the urls with the stashed extensions
-  n = 0
   var
     output: string
   if meth in {HttpPost, HttpPut}:
+    n = 0
     for link in response.splitLines:
       if link.startsWith("user") or link.strip == "":
         continue
@@ -158,10 +172,17 @@ proc paste*(name = "stdin"; xclip = true; extension = "nim"; reads = 0;
         uri = link.strip.parseUri
       if output != "":
         output &= "\n"
+      # tweak the output url to add the appropriate syntax highlighter
       output &= $(uri / exts[n])
+      n.inc
   else:
+    # if we aren't getting pastes back, just dump whatever we get
     output = response
+
+  # dump the output without any emojis
   fatal output
+
+  # if xclip was requested, copy the output to our clipboard
   if xclip:
     if not issueXclip(output):
       notice "xclip fail"
