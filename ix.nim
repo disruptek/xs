@@ -2,7 +2,6 @@ import os
 import streams
 import sequtils
 import osproc
-import options
 import httpclient
 import httpcore
 import base64
@@ -10,8 +9,6 @@ import strutils
 import strformat
 import uri
 
-import cligen
-import bump
 import cutelog
 
 const
@@ -189,6 +186,10 @@ proc paste*(name = "stdin"; xclip = true; extension = "nim"; reads = 0;
 
 
 when isMainModule:
+  import bump
+  import cligen
+  import options
+
   let
     console = newConsoleLogger(levelThreshold = logLevel,
                                useStderr = true, fmtStr = "")
