@@ -73,9 +73,9 @@ INT32 expire_timeout;
 
 ]#
 
-proc sendNotify[T](app_name: string; replaces_id: Replaces=0; app_icon="";
+proc sendNotify(app_name: string; replaces_id: Replaces=0; app_icon="";
   summary=""; body=""; actions: seq[string]= @[];
-  hints: Table[string, Variant[T]]; expire_timeout: int32 = 0): Replaces =
+  hints: Table[string, auto]; expire_timeout: int32 = 0): Replaces =
   ## send a dbus message for notification purposes
 
   # this is straight outta solitudesf's example in dbus
