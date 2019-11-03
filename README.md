@@ -9,6 +9,8 @@ A tiny tool/library to paste to http://ix.io/ -- yes, as was pointed out to me,
 it's one line of `curl`. I'm going to integrate this into the bot below so it
 can provide Nim Playground links automatically.
 
+[Documentation for the ix module as generated from the source.](https://disruptek.github.io/xs/ix.html)
+
 ```
 Usage:
   ix [optional-params] files to paste to ix
@@ -39,6 +41,8 @@ These particular requirements can usually be handled via sway config, but this
 is a more general solution that I expect to grow more useful, and it's a good
 demo for the swayipc library.
 
+[Documentation for the geometry module as generated from the source.](https://disruptek.github.io/xs/geometry.html)
+
 ## Bot
 
 This irc bot relays messages as d-bus notifications and knows how to combine
@@ -48,17 +52,23 @@ also avoids notifications when my irc window is focussed.
 I mostly made this for interfacing with Twitch after watching @Araq struggle to
 keep abreast of chat comments while streaming.
 
+[Documentation for the bot module as generated from the source.](https://disruptek.github.io/xs/bot.html)
+
 ## AutoOpacity
 
 This is another little demo of swayipc that I use to make my out-of-focus
 terminal windows more translucent and vice-versa, as I don't use title bars or
 borders and otherwise have few visual cues to indicate focus.
 
+[Documentation for the autoopacity module as generated from the source.](https://disruptek.github.io/xs/autoopacity.html)
+
 ## KittyColor
 
 A deprecated solution to the above problem which uses IPC to tell Kitty to
 change the background color of its window. It should be obvious why I replaced
 this with swayipc and autoopacity.
+
+[Documentation for the kittycolor module as generated from the source.](https://disruptek.github.io/xs/kittycolor.html)
 
 ## License
 MIT
