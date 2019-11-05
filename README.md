@@ -6,8 +6,7 @@ packaging.  Build and run with `--help` to get usage hints.
 ## ix
 
 A tiny tool/library to paste to http://ix.io/ -- yes, as was pointed out to me,
-it's one line of `curl`. I'm going to integrate this into the bot below so it
-can provide Nim Playground links automatically.
+it's one line of `curl`.
 
 [Documentation for the ix module as generated from the source.](https://disruptek.github.io/xs/ix.html)
 
