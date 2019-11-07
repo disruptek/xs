@@ -66,15 +66,10 @@ proc issueXclip*(output: string): bool =
   process.inputStream.close()
   result = process.waitForExit == 0
 
-proc paste*(name = "stdin"; xclip = true; extension = "nim"; reads = 0;
-            get = ""; put = ""; delete = "";
-            username = ""; password = "", log_level = logLevel,
-            filenames: seq[string]): int =
-  ## paste to ix
+proc guessCredentials(username = ""; password = ""):
+  tuple[user: string; pass: string] =
+  ## guess the credentials for ix
   var
-    n: int
-    data = newMultipartData()
-    client = newHttpClient()
     user, pass: string
 
   # try to guess the username if it wasn't provided
@@ -90,6 +85,65 @@ proc paste*(name = "stdin"; xclip = true; extension = "nim"; reads = 0;
     pass = password
   else:
     pass = os.getEnv "IX_PASS"
+
+  result = (user: user, pass: pass)
+
+proc setupClient*(user = ""; pass = ""): HttpClient =
+  ## instantiate a new http client and assign credentials if available
+  let
+    creds = guessCredentials(username = user, password = pass)
+
+  result = newHttpClient()
+  # set authentication credentials if available
+  if user != "" and pass != "":
+    result.headers["Authorization"] = @["Basic " &
+                                        encode(&"{creds.user}:{creds.pass}")]
+
+proc pluckUrlsFromResponse*(response: string;
+                           exts: seq[string] = @[]): seq[Uri] =
+  # output the urls with the stashed extensions
+  var
+    n: int
+  for link in response.splitLines:
+    if link.startsWith("user") or link.strip == "":
+      continue
+    var
+      uri = link.strip.parseUri
+    # tweak the output url to add the appropriate syntax highlighter
+    if n <= exts.high and exts[n].len > 0:
+      uri.path = uri.path / exts[n]
+    n.inc
+    result.add uri
+
+proc executePaste*(client: HttpClient; meth: HttpMethod; data: MultipartData;
+                  id = ""): string =
+  # make a query of ix using all the info we've collected thus far
+  var
+    url = "http://ix.io/" & id
+
+  # issue the request and store the response, a string, upon receipt
+  case meth:
+  of HttpGet:
+    result = client.getContent(url)
+  of HttpPut:
+    result = client.putContent(url, multipart = data)
+  of HttpPost:
+    result = client.postContent(url, multipart = data)
+  of HttpDelete:
+    result = client.deleteContent(url)
+  else:
+    raise newException(ValueError,
+                       &"{meth} not supported; use Get, Put, Post, or Delete")
+
+proc paste*(name = "stdin"; xclip = true; extension = "nim"; reads = 0;
+            get = ""; put = ""; delete = "";
+            username = ""; password = "", log_level = logLevel,
+            filenames: seq[string]): int =
+  ## paste to ix
+  var
+    n: int
+    data = newMultipartData()
+    creds = guessCredentials(username = username, password = password)
 
   # why would anyone want to submit more than one such command?
   if @[put, delete, get].count("") < 2:
@@ -113,8 +167,8 @@ proc paste*(name = "stdin"; xclip = true; extension = "nim"; reads = 0;
 
   # some methods require authentication
   if meth in {HttpPut, HttpDelete}:
-    if pass == "" or user == "":
-      crash &"provide a password and username; $USER `{user}` by default"
+    if creds.pass == "" or creds.user == "":
+      crash &"provide a password and username; `{creds.user}` by default"
 
   # we're going to record the apparent file extensions so we can use them
   # to build urls which will load the pastes with syntax highlighting
@@ -129,49 +183,24 @@ proc paste*(name = "stdin"; xclip = true; extension = "nim"; reads = 0;
                  ext = extension, read = reads)
       exts.add extension.replace(".")
       n.inc
-    # otherwise, add each file to the payload
-    for fn in filenames.items:
-      let
-        splat = fn.splitFile
-      exts.add splat.ext.replace(".")
-      data.addIx(n, filename = fn, id = id, read = reads)
-      n.inc
+    else:
+      # otherwise, add each file to the payload
+      for fn in filenames.items:
+        let
+          splat = fn.splitFile
+        exts.add splat.ext.replace(".")
+        data.addIx(n, filename = fn, id = id, read = reads)
+        n.inc
 
-  # make a query of ix using all the info we've collected thus far
   var
-    response: string
-    url = "http://ix.io/" & id
-  # set authentication credentials if available
-  if user != "" and pass != "":
-    client.headers["Authorization"] = @["Basic " & encode(&"{user}:{pass}")]
-  # issue the request and store the response, a string, upon receipt
-  case meth:
-  of HttpGet:
-    response = client.getContent(url)
-  of HttpPut:
-    response = client.putContent(url, multipart = data)
-  of HttpPost:
-    response = client.postContent(url, multipart = data)
-  of HttpDelete:
-    response = client.deleteContent(url)
-  else:
-    crash &"{meth} not supported; use Get, Put, Post, or Delete"
-
-  # output the urls with the stashed extensions
-  var
+    client = setupClient(user = username, pass = password)
+    response = client.executePaste(meth, data, id = id)
     output: string
+
   if meth in {HttpPost, HttpPut}:
-    n = 0
-    for link in response.splitLines:
-      if link.startsWith("user") or link.strip == "":
-        continue
-      let
-        uri = link.strip.parseUri
-      if output != "":
-        output &= "\n"
-      # tweak the output url to add the appropriate syntax highlighter
-      output &= $(uri / exts[n])
-      n.inc
+    let
+      urls = response.pluckUrlsFromResponse(exts)
+    output = urls.join("\n")
   else:
     # if we aren't getting pastes back, just dump whatever we get
     output = response
@@ -183,7 +212,6 @@ proc paste*(name = "stdin"; xclip = true; extension = "nim"; reads = 0;
   if xclip:
     if not issueXclip(output):
       notice "xclip fail"
-
 
 when isMainModule:
   import bump
