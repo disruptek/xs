@@ -69,5 +69,27 @@ this with swayipc and autoopacity.
 
 [Documentation for the kittycolor module as generated from the source.](https://disruptek.github.io/xs/kittycolor.html)
 
+## Google
+
+A quick hack to test Google's Search API from the command-line.
+
+```
+Usage:
+  googleSearch [optional-params] [keywords: string...]
+Options(opt-arg sep :|=|spc):
+  -h, --help                                          print this cligen-erated help
+  --help-syntax                                       advanced: prepend,plurals,..
+  -f=, --fields=            string           "items"  set fields
+  -s=, --searchType=        SearchType                set searchType
+  -i=, --imgDominantColor=  DominantColor             set imgDominantColor
+  --imgSize=                ImageSize                 set imgSize
+  --imgType=                ImageType        photo    set imgType
+  --imgColorType=           ColorType                 set imgColorType
+  --fileType=               string           ""       set fileType
+  -n=, --num=               uint             0        set num
+  --sort=                   string           ""       set sort
+  -r=, --rights=            set(RightsType)  {}       include 1 val in rights
+```
+
 ## License
 MIT
