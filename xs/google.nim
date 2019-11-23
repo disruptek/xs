@@ -7,6 +7,8 @@ import strformat
 import tables
 import logging
 import uri
+import sequtils
+import asyncdispatch
 
 import cligen
 
@@ -28,8 +30,7 @@ type
     LongMessage*: string
     ErrorCode*: string
     ErrorParameters*: ResultPage
-  GoogleCall* = object of RestCall
-  GoogleSearch* = object of GoogleCall
+  GoogleCall* = ref object of RestCall
   Keywords* = seq[string]
   ColorType* {.pure.} = enum Any = "", Mono = "mono", Gray = "gray", Color = "color"
   RightsType* {.pure.} = enum
@@ -114,7 +115,7 @@ type
 
   ListResponse* = object of ResponseType
 
-let Search* = GoogleSearch()
+let Search* = GoogleCall()
 
 proc `$`*(e: ref GoogleError): string
   {.raises: [].}=
@@ -129,7 +130,7 @@ proc `$`*(e: ref ErrorResponse): string
   result = $typeof(e) & " " & e.msg & "\n" & $e.parsed
 
 method `$`(call: GoogleCall): string
-  {.base, raises: [].} =
+  {.raises: [].} =
   ## turn a call into its name
   result = $call
 
@@ -147,7 +148,7 @@ proc findSearchContext*(): string =
   result = cast[string](os.getEnv("GOOGLE_SEARCH_ENGINE"))
   assert result.len != 0, "define GOOGLE_SEARCH_ENGINE in env"
 
-method recall*(call: GoogleSearch; input: ListRequest): Recallable
+method recall*(call: GoogleCall; input: ListRequest): Recallable
   {.base, raises: [Exception].} =
   ## issue a retryable Search
   let
@@ -160,7 +161,7 @@ method recall*(call: GoogleSearch; input: ListRequest): Recallable
 
   result = call.newRecallable(url.parseUri, {
     "Content-Type": "application/json;charset=UTF-8",
-  })
+  }, "")
   result.meth = HttpGet
 
 converter toListResponse*(js: JsonNode): ListResponse =
