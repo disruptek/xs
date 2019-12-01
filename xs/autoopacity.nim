@@ -78,7 +78,7 @@ proc isTerminal(container: TreeReply): bool =
 
 proc isIrc(container: TreeReply): bool =
   for window in container.clientWalk:
-    if window.name == "irc":
+    if window.app_id == "irc":
       return true
 
 proc autoOpacity(active=1.0; inactive=0.75, fgcolor="", bgcolor="") =
@@ -99,7 +99,7 @@ proc autoOpacity(active=1.0; inactive=0.75, fgcolor="", bgcolor="") =
     compositor.setOpacity(now, active)
     compositor.setOpacity(was, inactive)
     if event.container.isIrc:
-      was = 0
+      was = now
     elif event.container.isTerminal:
       was = now
     else:
