@@ -81,29 +81,45 @@ proc isIrc(container: TreeReply): bool =
     if window.app_id == "irc":
       return true
 
-proc autoOpacity(active=1.0; inactive=0.75, fgcolor="", bgcolor="") =
+proc isFloating(container: TreeReply): bool =
+  for window in container.clientWalk:
+    result = window.`type` == "floating_con"
+    if result:
+      break
+
+proc autoOpacity(active=1.0; inactive=0.75; floating=0.30;
+                 fgcolor=""; bgcolor="") =
   ## set opacity on active|inactive windows
 
   var
     now, was = 0
+    wasfloats = false
+    nowfloats = false
     compositor = waitFor newCompositor()
 
   for event in compositor.windowChanges():
     if event.change != "focus":
       continue
+    nowfloats = event.container.isFloating
     now = event.container.id
     if now == 0:
       continue
     if now == was:
       continue
     compositor.setOpacity(now, active)
-    compositor.setOpacity(was, inactive)
+    if wasfloats:
+      compositor.setOpacity(was, floating)
+    else:
+      compositor.setOpacity(was, inactive)
     if event.container.isIrc:
       was = now
     elif event.container.isTerminal:
       was = now
+    elif nowfloats:
+      was = now
     else:
       was = 0
+    wasfloats = nowfloats
 
 when isMainModule:
   when defined(release) or defined(danger):
