@@ -78,8 +78,9 @@ proc isTerminal(container: TreeReply): bool =
 
 proc isIrc(container: TreeReply): bool =
   for window in container.clientWalk:
-    if window.app_id == "irc":
-      return true
+    result = window.app_id == "irc"
+    if result:
+      break
 
 proc isFloating(container: TreeReply): bool =
   for window in container.clientWalk:
@@ -107,7 +108,7 @@ proc autoOpacity(active=1.0; inactive=0.75; floating=0.30;
     if now == was:
       continue
     compositor.setOpacity(now, active)
-    if wasfloats:
+    if wasfloats and not event.container.isIrc:
       compositor.setOpacity(was, floating)
     else:
       compositor.setOpacity(was, inactive)
