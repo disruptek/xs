@@ -91,5 +91,9 @@ Options(opt-arg sep :|=|spc):
   -r=, --rights=            set(RightsType)  {}       include 1 val in rights
 ```
 
+## Attenuate
+
+A hack to attentuate the PulseAudio stream volume of the focused window.
+
 ## License
 MIT

@@ -1,13 +1,14 @@
-version = "0.0.11"
+version = "0.0.12"
 author = "disruptek"
 description = "xs"
 license = "MIT"
-requires "nim >= 0.20.0"
-requires "swayipc >= 3.1.4"
-requires "cligen >= 0.9.41"
+requires "nim < 2.0.0"
+requires "swayipc < 4.0.0"
+requires "cligen < 1.0.0"
 requires "dbus"
-requires "irc >= 0.2.1"
-requires "https://github.com/disruptek/cutelog >= 1.0.1"
-requires "bump >= 1.8.11"
+requires "irc < 1.0.0"
+requires "https://github.com/disruptek/cutelog < 2.0.0"
+requires "bump < 2.0.0"
+requires "https://github.com/disruptek/pulseauto < 2.0.0"
 
-bin = @["xs/bot", "xs/autoopacity", "xs/geometry", "xs/ix"]
+bin = @["xs/bot", "xs/autoopacity", "xs/geometry", "xs/ix", "xs/attentuate"]
