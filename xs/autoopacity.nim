@@ -88,7 +88,7 @@ proc isFloating(container: TreeReply): bool =
     if result:
       break
 
-proc autoOpacity(active=1.0; inactive=0.75; floating=0.30;
+proc autoOpacity(active=1.0; inactive=0.75; floating=1.00;
                  fgcolor=""; bgcolor="") =
   ## set opacity on active|inactive windows
 
