@@ -10,5 +10,6 @@ requires "irc < 1.0.0"
 requires "https://github.com/disruptek/cutelog < 2.0.0"
 requires "bump < 2.0.0"
 requires "https://github.com/disruptek/pulseauto < 2.0.0"
+requires "synthesis"
 
-bin = @["xs/bot", "xs/autoopacity", "xs/geometry", "xs/ix", "xs/attentuate"]
+bin = @["xs/bot", "xs/autoopacity", "xs/geometry", "xs/ix", "xs/attentuate", "xs/barman", "xs/demo"]
