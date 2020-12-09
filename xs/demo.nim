@@ -27,8 +27,8 @@ proc temporaryFilename(): string =
   result = getTempDir() / "demo-" & $getCurrentProcessId()
 
 proc termToSvg(path: string; cmd: string; lines = 0; delay = 10000) =
-  template animate: bool = lines == 0
   var lines = lines
+  var animate = lines == 0
   var svg = @["--template=window_frame_powershell"]
   var work = path
 
@@ -38,14 +38,14 @@ proc termToSvg(path: string; cmd: string; lines = 0; delay = 10000) =
   svg.add """--command="$1"""" % [ binary ]
 
   try:
-    # loop or, or not
+    # loop or not
     if animate:
-      svg.add "--loop-delay=$1" % [ $delay ]
+      work = parentDir path
+      svg.add "--still-frames"
       # clear any stills
       renameLastStill path
     else:
-      work = parentDir path
-      svg.add "--still-frames"
+      svg.add "--loop-delay=$1" % [ $delay ]
 
     # calculate the ideal height
     if lines == 0:
