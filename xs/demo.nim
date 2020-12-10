@@ -26,10 +26,11 @@ proc temporaryFilename(): string =
   #result = staticExec """mktemp --tmpdir="$1"""" % [ getTempDir() ]
   result = getTempDir() / "demo-" & $getCurrentProcessId()
 
-proc termToSvg(path: string; cmd: string; lines = 0; delay = 10000) =
+proc termToSvg(path: string; cmd: string; lines = 0;
+               style = "window_frame_powershell", delay = 10000) =
   var lines = lines
   var animate = lines == 0
-  var svg = @["--template=window_frame_powershell"]
+  var svg = @["--template=" & style]
   var work = path
 
   # build the binary
@@ -63,7 +64,11 @@ proc termToSvg(path: string; cmd: string; lines = 0; delay = 10000) =
 
 when isMainModule:
   var (output, command, lines) = (paramStr(1), paramStr(2), 0)
+  var style = "window_frame_powershell"
   if paramCount() > 2:
-    lines = parseInt paramStr(3)
+    try:
+      lines = parseInt paramStr(3)
+    except:
+      style = paramStr(3)
   echo "output: ", output, "; command: ", command, "; lines: ", lines
-  termToSvg(output, command, lines = lines)
+  termToSvg(output, command, lines = lines, style = style)
