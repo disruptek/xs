@@ -51,7 +51,7 @@ proc termToSvg(path: string; cmd: string; lines = 0; delay = 10000) =
     if lines == 0:
       let (output, code) = execCmdEx binary
       # a bad exit code might be intentional
-      lines = len(splitLines output)
+      lines = len(splitLines output) + 1 # trailing newline guard
     svg.add "--screen-geometry=80x$1" % [ $lines ]
     exec "termtosvg $1 $2" % [ work, svg.join " " ]
 
