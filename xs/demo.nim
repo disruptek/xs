@@ -29,13 +29,17 @@ proc temporaryFilename(): string =
 proc termToSvg(path: string; cmd: string; lines = 0;
                style = "window_frame_powershell", delay = 10000) =
   var lines = lines
-  var animate = lines == 0
+  var animate = lines != 0
   var svg = @["--template=" & style]
   var work = path
+  var binary: string
 
-  # build the binary
-  var binary = temporaryFilename()
-  exec cmd % [ binary ]
+  if "$1" in cmd:
+    # build the binary
+    binary = temporaryFilename()
+    exec cmd % [ binary ]
+  else:
+    binary = cmd
   svg.add """--command="$1"""" % [ binary ]
 
   try:
@@ -54,7 +58,9 @@ proc termToSvg(path: string; cmd: string; lines = 0;
       # a bad exit code might be intentional
       lines = len(splitLines output) + 1 # trailing newline guard
     svg.add "--screen-geometry=80x$1" % [ $lines ]
-    exec "termtosvg $1 $2" % [ work, svg.join " " ]
+    let cmd = "termtosvg $1 $2" % [ work, svg.join " " ]
+    echo cmd
+    exec cmd
 
     if animate:
       # rename the last still into place
@@ -63,12 +69,18 @@ proc termToSvg(path: string; cmd: string; lines = 0;
     removeFile binary
 
 when isMainModule:
-  var (output, command, lines) = (paramStr(1), paramStr(2), 0)
+  var lines = 0
+  var (output, command) = (paramStr(1), paramStr(2))
   var style = "window_frame_powershell"
-  if paramCount() > 2:
+  case paramCount()
+  of 2:
+    discard
+  of 3:
     try:
       lines = parseInt paramStr(3)
     except:
       style = paramStr(3)
+  else:
+    discard
   echo "output: ", output, "; command: ", command, "; lines: ", lines
   termToSvg(output, command, lines = lines, style = style)
