@@ -1,3 +1,6 @@
+bin
+deps
+nim.cfg
 config.nims
 autoopacity
 ix
